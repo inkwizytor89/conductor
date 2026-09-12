@@ -74,14 +74,12 @@ public class TerminalCli implements CommandLineRunner {
 
         String login = split[1];
         String password = split[2];
+        String server = split[3];
 
         InstanceProfile profile = new InstanceProfile();
 
-        profile.setId("worker-" + UUID.randomUUID().toString().substring(0, 6));
-        profile.setUsername(login);
-        profile.setPassword(password);
-        profile.setPort(0);
-        profile.setCreatedAt(System.currentTimeMillis());
+        profile.setId(login+ "#" + server);
+        profile.setAutoStart(true);
 
         repository.save(profile);
 
@@ -125,12 +123,7 @@ public class TerminalCli implements CommandLineRunner {
     private void list() throws Exception {
 
         for (InstanceProfile profile : repository.loadAll()) {
-
-            System.out.println(
-                    profile.getId() +
-                            " | " +
-                            profile.getUsername()
-            );
+            System.out.println( profile.getId());
         }
     }
 
