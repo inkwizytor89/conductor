@@ -3,6 +3,7 @@ package com.enoch.conductor.process;
 
 import com.enoch.conductor.instance.InstanceProfile;
 import com.enoch.conductor.instance.InstanceRuntime;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.nio.file.Path;
@@ -13,6 +14,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ProcessService {
 
     private final Map<String, InstanceRuntime> runtimes = new ConcurrentHashMap<>();
+    
+    private final String instancesDirPath;
+
+    public ProcessService(@Value("${conductor.instances-dir:instances}") String instancesDirPath) {
+        this.instancesDirPath = instancesDirPath;
+    }
 
     public void start(InstanceProfile profile) throws Exception {
 
@@ -20,7 +27,7 @@ public class ProcessService {
             return;
         }
 
-        Path instanceDir = Path.of("instances", profile.getId());
+        Path instanceDir = Path.of(instancesDirPath, profile.getId());
 
         ProcessBuilder pb = new ProcessBuilder(
                 "java",

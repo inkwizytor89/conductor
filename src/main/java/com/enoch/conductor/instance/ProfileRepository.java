@@ -1,6 +1,7 @@
 package com.enoch.conductor.instance;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
@@ -14,7 +15,11 @@ public class ProfileRepository {
 
     private final ObjectMapper mapper = new ObjectMapper();
 
-    private final Path instancesDir = Path.of("instances");
+    private final Path instancesDir;
+
+    public ProfileRepository(@Value("${conductor.instances-dir:instances}") String instancesDirPath) {
+        this.instancesDir = Path.of(instancesDirPath);
+    }
 
     public List<InstanceProfile> loadAll() throws Exception {
 
