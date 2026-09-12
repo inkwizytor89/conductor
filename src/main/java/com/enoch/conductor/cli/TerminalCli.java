@@ -163,7 +163,12 @@ public class TerminalCli implements CommandLineRunner {
         String command = split[2];
 
         CommandMessage msg = new CommandMessage();
-        msg.setType(command);
+        msg.setId(UUID.randomUUID().toString());
+        msg.setType("request:" + command);
+        msg.setFrom("conductor");
+        msg.setTo(workerId);
+        msg.setTimestamp(System.currentTimeMillis());
+        msg.setStatus(100);
 
         socketHandler.send(workerId, mapper.writeValueAsString(msg));
     }
@@ -173,7 +178,12 @@ public class TerminalCli implements CommandLineRunner {
         String command = split[1];
 
         CommandMessage msg = new CommandMessage();
-        msg.setType(command);
+        msg.setId(UUID.randomUUID().toString());
+        msg.setType("request:" + command);
+        msg.setFrom("conductor");
+        msg.setTo("broadcast");
+        msg.setTimestamp(System.currentTimeMillis());
+        msg.setStatus(100);
 
         socketHandler.broadcast(mapper.writeValueAsString(msg));
     }
