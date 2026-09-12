@@ -2,6 +2,7 @@ package com.enoch.conductor.cli;
 
 import com.enoch.conductor.command.CommandMessage;
 import com.enoch.conductor.instance.InstanceProfile;
+import com.enoch.conductor.instance.InstanceRuntime;
 import com.enoch.conductor.instance.ProfileRepository;
 import com.enoch.conductor.process.ProcessService;
 import com.enoch.conductor.ws.WorkerSocketHandler;
@@ -10,6 +11,7 @@ import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
 import java.util.UUID;
 
@@ -58,7 +60,7 @@ public class TerminalCli implements CommandLineRunner {
                     case "start" -> start(split);
                     case "stop" -> stop(split);
                     case "restart" -> restart(split);
-                    case "list" -> list();
+                    case "status" -> status();
                     case "send" -> send(split);
                     case "broadcast" -> broadcast(split);
                     case "delete" -> delete(split);
@@ -127,6 +129,34 @@ public class TerminalCli implements CommandLineRunner {
         }
     }
 
+    private void status() throws Exception {
+        List<InstanceProfile> profiles = repository.loadAll();
+        Map<String, InstanceRuntime> runtimes = processService.getAllRuntimes();
+
+        if (profiles.isEmpty()) {
+            System.out.println("No instances found.");
+            return;
+        }
+
+        System.out.println("\nID\t\t\t\t\t\t\t\tRUNNING\t\tAUTOSTART\tPID");
+        System.out.println("─".repeat(70));
+
+        for (InstanceProfile profile : profiles) {
+            boolean isRunning = processService.isRunning(profile.getId());
+            InstanceRuntime runtime = runtimes.get(profile.getId());
+            long pid = runtime != null ? runtime.getPid() : -1;
+
+            String id = profile.getId();
+            String running = isRunning ? "yes" : "no";
+            String autoStart = profile.isAutoStart() ? "yes" : "no";
+            String pidStr = pid == -1 ? "-" : String.valueOf(pid);
+
+            System.out.printf("%-24s\t%-15s\t%-15s\t\t%s%n", id, running, autoStart, pidStr);
+        }
+
+        System.out.println();
+    }
+
     private void send(String[] split) throws Exception {
 
         String workerId = split[1];
@@ -156,15 +186,24 @@ public class TerminalCli implements CommandLineRunner {
     private void help() {
 
         System.out.println("""
-                create <login> <password>
-                start <id>
-                stop <id>
-                restart <id>
-                list
-                send <id> <command>
-                broadcast <command>
-                delete <id>
-                help
+                Usage: conductor <command> [options]
+
+                Commands:
+                  create <login> <server>     Create a new instance profile
+                  start <id>                  Start an instance
+                  stop <id>                   Stop a running instance
+                  restart <id>                Restart an instance (stop and start)
+                  status                      Show status of all instances
+                  send <id> <command>         Send a command to a specific worker
+                  broadcast <command>         Send a command to all workers
+                  delete <id>                 Delete an instance profile and its data
+                  help                        Display this help message
+
+                Examples:
+                  conductor create user@example.com gmail
+                  conductor start user@example.com#gmail
+                  conductor status
+                  conductor send user@example.com#gmail restart
                 """);
     }
 }
