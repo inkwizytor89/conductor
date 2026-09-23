@@ -30,6 +30,8 @@
                     <form id="createInstanceForm" class="create-instance-section" hidden>
                         <h3>Create New Instance</h3>
                         <input type="text" id="newInstanceId" placeholder="Instance ID" />
+                        <label for="startTemplateSelect">Start template</label>
+                        <select id="startTemplateSelect"></select>
                         <label>
                             <input type="checkbox" id="newInstanceAutoStart" />
                             Auto-start
@@ -58,6 +60,20 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <div id="placeholderModal" class="modal-overlay" hidden>
+        <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="placeholderModalTitle">
+            <h3 id="placeholderModalTitle">Set placeholder values</h3>
+            <p id="placeholderModalSubtitle" class="modal-subtitle"></p>
+            <form id="placeholderForm">
+                <div id="placeholderFields" class="placeholder-fields"></div>
+                <div class="modal-actions">
+                    <button type="button" id="cancelPlaceholderBtn" class="btn-secondary">Cancel</button>
+                    <button type="submit" class="btn-primary">Apply placeholders</button>
+                </div>
+            </form>
+        </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm@4.18.0/lib/xterm.js"></script>

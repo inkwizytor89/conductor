@@ -32,23 +32,22 @@ public class ProfileRepository {
             Files.createDirectories(instancesDir);
         }
 
-        Files.list(instancesDir)
-                .filter(Files::isDirectory)
-                .forEach(path -> {
-                    try {
+        try (var paths = Files.list(instancesDir)) {
+            paths.filter(Files::isDirectory)
+                    .forEach(path -> {
+                        try {
+                            File file = path.resolve("config.json").toFile();
 
-                        File file = path.resolve("config.json").toFile();
-
-                        if (file.exists()) {
-                            profiles.add(
-                                    mapper.readValue(file, InstanceProfile.class)
-                            );
+                            if (file.exists()) {
+                                profiles.add(
+                                        mapper.readValue(file, InstanceProfile.class)
+                                );
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
                         }
-
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
-                });
+                    });
+        }
 
         return profiles;
     }
@@ -96,5 +95,9 @@ public class ProfileRepository {
             }
             throw e;
         }
+    }
+
+    public Path resolveInstanceDir(String id) {
+        return instancesDir.resolve(id);
     }
 }

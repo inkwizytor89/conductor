@@ -320,6 +320,23 @@ main {
     background: rgba(0, 212, 255, 0.1);
 }
 
+.create-instance-section select {
+    width: 100%;
+    background: rgba(60, 60, 80, 0.6);
+    border: 1px solid #404060;
+    padding: 8px;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 12px;
+    margin-bottom: 8px;
+}
+
+.create-instance-section select:focus {
+    outline: none;
+    border-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
 .create-instance-section label {
     display: flex;
     align-items: center;
@@ -393,6 +410,95 @@ main {
 
 .btn-primary:active {
     transform: scale(0.95);
+}
+
+.btn-secondary {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e0e0e0;
+    border: 1px solid #404060;
+    padding: 8px 16px;
+    border-radius: 4px;
+    font-weight: bold;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background: rgba(255, 255, 255, 0.12);
+}
+
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.65);
+    z-index: 1000;
+    padding: 16px;
+}
+
+.modal-overlay[hidden] {
+    display: none;
+}
+
+.modal-card {
+    width: min(720px, 100%);
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #232338;
+    border: 1px solid #404060;
+    border-radius: 10px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
+
+.modal-card h3 {
+    color: #00d4ff;
+    margin-bottom: 8px;
+}
+
+.modal-subtitle {
+    color: #a0a0a0;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+
+.placeholder-fields {
+    display: grid;
+    gap: 12px;
+}
+
+.placeholder-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: #e0e0e0;
+    font-size: 12px;
+}
+
+.placeholder-field input {
+    width: 100%;
+    background: rgba(60, 60, 80, 0.6);
+    border: 1px solid #404060;
+    padding: 8px 10px;
+    border-radius: 4px;
+    color: #e0e0e0;
+    font-size: 12px;
+}
+
+.placeholder-field input:focus {
+    outline: none;
+    border-color: #00d4ff;
+    background: rgba(0, 212, 255, 0.1);
+}
+
+.modal-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 18px;
 }
 
 /* Xterm customization */

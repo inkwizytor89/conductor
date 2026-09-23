@@ -8,6 +8,7 @@ Conductor is an application for managing multiple instances from different accou
 - 🔐 **Multi-Account Support** - handle profiles from different sources
 - 📊 **Monitoring** - track instance status and logs
 - ⚙️ **Configuration** - flexible configuration of instance directories
+- 🧩 **Templates** - create instances from placeholder-based start properties
 - ⚡ **Auto-Start** - automatically start instances marked with auto-start on application startup
 
 ## Requirements
@@ -45,11 +46,20 @@ For example:
 java -jar conductor.jar --instances-dir=/data/conductor-instances
 ```
 
+### With Custom Start Properties Directory
+
+You can specify a custom directory for storing start-property templates using the `--start-properties-dir` parameter:
+
+```bash
+java -jar conductor.jar --start-properties-dir=/data/start-properties
+```
+
 ## Startup Parameters
 
 | Parameter | Description | Default |
 |-----------|-------------|---------|
 | `--instances-dir=<path>` | Path to the directory where instances will be stored | `instances` |
+| `--start-properties-dir=<path>` | Path to the directory where start-property templates are stored | `start-properties` |
 
 ## Auto-Start Feature
 
@@ -64,15 +74,28 @@ Instances can be configured to automatically start when the application starts. 
 
 When the application starts, it will automatically launch all instances with `autoStart` set to `true`. This happens after all Spring beans are initialized.
 
+## Start Properties Templates
+
+The application creates a `start-properties/` directory on startup if it does not exist. It also seeds a default `start.properties` template with:
+
+```properties
+main.time=on
+main.login=<login>
+main.password=<password>
+main.server=<server_name>
+```
+
+When creating a new instance, pick a template from the UI. Conductor copies it to `server.properties` inside the instance directory and then asks for values for every placeholder before writing the final file.
+
 ## Architecture
 
 ### Main Components
 
 - **ProcessService** - core service for managing instance lifecycle (start, stop, restart, auto-start)
 - **ProfileRepository** - manages instance profiles (loading, saving configuration)
+- **StartPropertiesRepository** - manages start-property templates and placeholder replacement
 - **InstanceProfile** - represents instance configuration
 - **InstanceRuntime** - represents a running instance
-- **DirectoryConfig** - handles command-line directory parameter configuration
 
 ### Directory Structure
 
@@ -80,13 +103,20 @@ When the application starts, it will automatically launch all instances with `au
 instances/
 ├── instance-1/
 │   ├── config.json      # Instance configuration
+│   ├── server.properties
 │   ├── logs/            # Application logs
 │   └── data/            # Instance data
 ├── instance-2/
 │   ├── config.json
+│   ├── server.properties
 │   ├── logs/
 │   └── data/
 └── ...
+```
+
+```
+start-properties/
+└── start.properties
 ```
 
 ## Configuration

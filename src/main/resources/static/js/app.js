@@ -24,11 +24,18 @@ function initApp() {
 
     let ws;
     let instances = [];
+    let startTemplates = [];
     let selectedInstance = null;
     let activeMenuInstanceId = null;
+    let pendingInstanceCreation = null;
     const createSection = document.getElementById('createInstanceForm');
     const createToggleBtn = document.getElementById('createToggleBtn');
     const instancesList = document.getElementById('instancesList');
+    const startTemplateSelect = document.getElementById('startTemplateSelect');
+    const placeholderModal = document.getElementById('placeholderModal');
+    const placeholderForm = document.getElementById('placeholderForm');
+    const placeholderFields = document.getElementById('placeholderFields');
+    const placeholderModalSubtitle = document.getElementById('placeholderModalSubtitle');
 
     function initWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -84,6 +91,41 @@ function initApp() {
         }
     }
 
+    async function loadStartTemplates() {
+        try {
+            const response = await fetch('/api/instances/templates');
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            startTemplates = await response.json();
+
+            if (!startTemplates.length) {
+                startTemplateSelect.innerHTML = '<option value="">No templates available</option>';
+                startTemplateSelect.disabled = true;
+                return;
+            }
+
+            startTemplateSelect.disabled = false;
+            startTemplateSelect.innerHTML = '';
+            startTemplates.forEach((template, index) => {
+                const option = document.createElement('option');
+                option.value = template.name;
+                option.textContent = template.name;
+                if (index === 0) {
+                    option.selected = true;
+                }
+                startTemplateSelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Failed to load templates:', error);
+            term.write('✗ Failed to load templates: ' + error.message + '\r\n');
+            startTemplateSelect.innerHTML = '<option value="">No templates available</option>';
+            startTemplateSelect.disabled = true;
+        }
+    }
+
     function renderInstances() {
         const list = instancesList;
         
@@ -136,6 +178,46 @@ function initApp() {
                 </div>
             </div>
         `).join('');
+    }
+
+    function openPlaceholderModal(instanceId, placeholders, templateName) {
+        pendingInstanceCreation = {
+            instanceId,
+            placeholders
+        };
+
+        placeholderModalSubtitle.textContent = `Template: ${templateName}`;
+        placeholderFields.innerHTML = '';
+        placeholders.forEach((placeholder) => {
+            const label = document.createElement('label');
+            label.className = 'placeholder-field';
+            label.htmlFor = `placeholder-${placeholder}`;
+
+            const text = document.createElement('span');
+            text.textContent = placeholder;
+
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.id = `placeholder-${placeholder}`;
+            input.dataset.placeholderName = placeholder;
+
+            label.appendChild(text);
+            label.appendChild(input);
+            placeholderFields.appendChild(label);
+        });
+
+        placeholderModal.hidden = false;
+        const firstInput = placeholderFields.querySelector('input');
+        if (firstInput) {
+            firstInput.focus();
+        }
+    }
+
+    function closePlaceholderModal() {
+        pendingInstanceCreation = null;
+        placeholderFields.innerHTML = '';
+        placeholderModalSubtitle.textContent = '';
+        placeholderModal.hidden = true;
     }
 
     function closeInstanceMenu() {
@@ -262,11 +344,17 @@ function initApp() {
 
         const idInput = document.getElementById('newInstanceId');
         const autoStartCheckbox = document.getElementById('newInstanceAutoStart');
+        const templateName = startTemplateSelect.value;
         
         const id = idInput.value.trim();
         
         if (!id) {
             term.write('✗ Instance ID cannot be empty\r\n');
+            return;
+        }
+
+        if (!templateName) {
+            term.write('✗ Please select a start template\r\n');
             return;
         }
         
@@ -276,15 +364,30 @@ function initApp() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     id: id,
-                    autoStart: autoStartCheckbox.checked
+                    autoStart: autoStartCheckbox.checked,
+                    templateName: templateName
                 })
             });
+
+            if (response.status === 409) {
+                term.write(`✗ Instance ${id} already exists\r\n`);
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
             
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
-            idInput.value = '';
-            autoStartCheckbox.checked = false;
-            await loadInstances();
+
+            if (data.placeholders && data.placeholders.length) {
+                openPlaceholderModal(id, data.placeholders, templateName);
+            } else {
+                idInput.value = '';
+                autoStartCheckbox.checked = false;
+                await loadInstances();
+            }
         } catch (error) {
             term.write(`✗ Error: ${error.message}\r\n`);
         }
@@ -299,6 +402,41 @@ function initApp() {
             ws.send('START:' + cmd);
         } else {
             term.write('✗ Terminal not connected\r\n');
+        }
+    }
+
+    async function submitPlaceholderValues(event) {
+        event.preventDefault();
+
+        if (!pendingInstanceCreation) {
+            closePlaceholderModal();
+            return;
+        }
+
+        const values = {};
+        placeholderFields.querySelectorAll('input[data-placeholder-name]').forEach((input) => {
+            values[input.dataset.placeholderName] = input.value;
+        });
+
+        try {
+            const response = await fetch(`/api/instances/${pendingInstanceCreation.instanceId}/placeholders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(values)
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            term.write(`✓ ${data.message}\r\n`);
+            document.getElementById('newInstanceId').value = '';
+            document.getElementById('newInstanceAutoStart').checked = false;
+            closePlaceholderModal();
+            await loadInstances();
+        } catch (error) {
+            term.write(`✗ Error: ${error.message}\r\n`);
         }
     }
 
@@ -319,6 +457,8 @@ function initApp() {
 
     document.getElementById('createInstanceForm').addEventListener('submit', createInstance);
     document.getElementById('createToggleBtn').addEventListener('click', toggleCreateForm);
+    document.getElementById('placeholderForm').addEventListener('submit', submitPlaceholderValues);
+    document.getElementById('cancelPlaceholderBtn').addEventListener('click', closePlaceholderModal);
 
     document.getElementById('refreshBtn').addEventListener('click', loadInstances);
 
@@ -361,6 +501,7 @@ function initApp() {
 
     // Initial setup
     initWebSocket();
+    loadStartTemplates();
     loadInstances();
 
     // Refresh instances list periodically

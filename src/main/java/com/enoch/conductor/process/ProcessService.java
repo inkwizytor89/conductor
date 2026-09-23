@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
@@ -54,6 +55,7 @@ public class ProcessService {
         }
 
         Path instanceDir = Path.of(instancesDirPath, profile.getId());
+        Files.createDirectories(instanceDir);
         String workerJarPath = new java.io.File("worker.jar").getAbsolutePath();
 
         ProcessBuilder pb = new ProcessBuilder(
