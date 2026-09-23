@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Conductor - Instance Manager</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@4.18.0/css/xterm.css" />
     <link rel="stylesheet" href="/css/style.css">
 </head>
@@ -20,21 +21,24 @@
                 <div class="left-panel">
                     <div class="panel-header">
                         <h2>Instances</h2>
-                        <button class="btn-icon" id="refreshBtn" title="Refresh list">↻</button>
+                        <div class="panel-actions">
+                            <button type="button" class="btn-icon" id="createToggleBtn" title="Create new instance" aria-expanded="false">+</button>
+                            <button type="button" class="btn-icon" id="refreshBtn" title="Refresh list">↻</button>
+                        </div>
                     </div>
 
-                    <div id="instancesList" class="instances-list">
-                        <div class="loading">Loading instances...</div>
-                    </div>
-
-                    <div class="create-instance-section">
+                    <form id="createInstanceForm" class="create-instance-section" hidden>
                         <h3>Create New Instance</h3>
                         <input type="text" id="newInstanceId" placeholder="Instance ID" />
                         <label>
                             <input type="checkbox" id="newInstanceAutoStart" />
                             Auto-start
                         </label>
-                        <button id="createBtn" class="btn-primary">Create</button>
+                        <button id="createBtn" class="btn-primary" type="submit">Create</button>
+                    </form>
+
+                    <div id="instancesList" class="instances-list">
+                        <div class="loading">Loading instances...</div>
                     </div>
                 </div>
 
@@ -42,7 +46,7 @@
                 <div class="right-panel">
                     <div class="panel-header">
                         <h2>Terminal</h2>
-                        <button class="btn-icon" id="clearTerminal" title="Clear terminal">×</button>
+                        <button type="button" class="btn-icon" id="clearTerminal" title="Clear terminal">×</button>
                     </div>
 
                     <div class="command-input">
@@ -57,7 +61,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm@4.18.0/lib/xterm.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/xterm@4.18.0/lib/addons/fit/fit.js"></script>
     <script src="/js/app.js"></script>
 </body>
 </html>

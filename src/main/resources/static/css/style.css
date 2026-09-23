@@ -70,6 +70,12 @@ main {
     border-bottom: 1px solid #404060;
 }
 
+.panel-actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+
 .panel-header h2 {
     font-size: 18px;
     color: #00d4ff;
@@ -90,6 +96,11 @@ main {
 .btn-icon:hover {
     background: rgba(0, 212, 255, 0.2);
     transform: scale(1.1);
+}
+
+.btn-icon.is-active {
+    background: rgba(0, 212, 255, 0.18);
+    color: #ffffff;
 }
 
 .instances-list {
@@ -203,7 +214,11 @@ main {
 .create-instance-section {
     padding: 15px;
     background: rgba(30, 30, 46, 0.9);
-    border-top: 1px solid #404060;
+    border-bottom: 1px solid #404060;
+}
+
+.create-instance-section[hidden] {
+    display: none;
 }
 
 .create-instance-section h3 {

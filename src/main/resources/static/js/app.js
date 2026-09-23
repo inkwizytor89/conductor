@@ -25,6 +25,8 @@ function initApp() {
     let ws;
     let instances = [];
     let selectedInstance = null;
+    const createSection = document.getElementById('createInstanceForm');
+    const createToggleBtn = document.getElementById('createToggleBtn');
 
     function initWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -164,7 +166,28 @@ function initApp() {
         }
     };
 
-    async function createInstance() {
+    function toggleCreateForm() {
+        const isHidden = createSection.hasAttribute('hidden');
+        if (isHidden) {
+            createSection.removeAttribute('hidden');
+            createToggleBtn.setAttribute('aria-expanded', 'true');
+            createToggleBtn.classList.add('is-active');
+            createToggleBtn.title = 'Hide create form';
+            document.getElementById('newInstanceId').focus();
+            return;
+        }
+
+        createSection.setAttribute('hidden', '');
+        createToggleBtn.setAttribute('aria-expanded', 'false');
+        createToggleBtn.classList.remove('is-active');
+        createToggleBtn.title = 'Create new instance';
+    }
+
+    async function createInstance(event) {
+        if (event) {
+            event.preventDefault();
+        }
+
         const idInput = document.getElementById('newInstanceId');
         const autoStartCheckbox = document.getElementById('newInstanceAutoStart');
         
@@ -222,7 +245,8 @@ function initApp() {
         executeCommand(cmd);
     });
 
-    document.getElementById('createBtn').addEventListener('click', createInstance);
+    document.getElementById('createInstanceForm').addEventListener('submit', createInstance);
+    document.getElementById('createToggleBtn').addEventListener('click', toggleCreateForm);
 
     document.getElementById('refreshBtn').addEventListener('click', loadInstances);
 
