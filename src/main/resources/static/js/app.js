@@ -25,8 +25,10 @@ function initApp() {
     let ws;
     let instances = [];
     let selectedInstance = null;
+    let activeMenuInstanceId = null;
     const createSection = document.getElementById('createInstanceForm');
     const createToggleBtn = document.getElementById('createToggleBtn');
+    const instancesList = document.getElementById('instancesList');
 
     function initWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -83,16 +85,41 @@ function initApp() {
     }
 
     function renderInstances() {
-        const list = document.getElementById('instancesList');
+        const list = instancesList;
         
         if (instances.length === 0) {
             list.innerHTML = '<div class="loading">No instances</div>';
             return;
         }
+
+        if (activeMenuInstanceId && !instances.some(inst => inst.id === activeMenuInstanceId)) {
+            activeMenuInstanceId = null;
+        }
         
         list.innerHTML = instances.map(inst => `
             <div class="instance-item ${selectedInstance === inst.id ? 'selected' : ''}" data-id="${inst.id}">
-                <div class="instance-name">${inst.id}</div>
+                <div class="instance-top">
+                    <div class="instance-name">${inst.id}</div>
+                    <div class="instance-menu-wrapper">
+                        <button
+                            type="button"
+                            class="instance-menu-btn"
+                            data-menu-button="true"
+                            data-id="${inst.id}"
+                            aria-haspopup="true"
+                            aria-expanded="${activeMenuInstanceId === inst.id ? 'true' : 'false'}"
+                            title="Instance actions"
+                        >⋮</button>
+                        <div class="instance-menu ${activeMenuInstanceId === inst.id ? 'open' : ''}" data-menu-for="${inst.id}">
+                            <button type="button" class="instance-menu-action" data-action="toggle-autostart" data-id="${inst.id}">
+                                ${inst.autoStart ? 'Disable auto-start' : 'Enable auto-start'}
+                            </button>
+                            <button type="button" class="instance-menu-action danger" data-action="delete" data-id="${inst.id}">
+                                Delete instance
+                            </button>
+                        </div>
+                    </div>
+                </div>
                 <div class="instance-status">
                     <span class="status-badge ${inst.running ? 'status-running' : 'status-stopped'}">
                         ${inst.running ? '● RUNNING' : '○ STOPPED'}
@@ -109,15 +136,60 @@ function initApp() {
                 </div>
             </div>
         `).join('');
-        
-        document.querySelectorAll('.instance-item').forEach(el => {
-            el.addEventListener('click', (e) => {
-                if (!e.target.classList.contains('btn-action')) {
-                    selectedInstance = el.dataset.id;
-                    loadInstanceStatus(el.dataset.id);
-                }
-            });
-        });
+    }
+
+    function closeInstanceMenu() {
+        if (activeMenuInstanceId !== null) {
+            activeMenuInstanceId = null;
+            renderInstances();
+        }
+    }
+
+    function toggleInstanceMenu(id) {
+        activeMenuInstanceId = activeMenuInstanceId === id ? null : id;
+        renderInstances();
+    }
+
+    async function toggleAutoStart(id) {
+        try {
+            const response = await fetch(`/api/instances/${id}/autostart/toggle`, { method: 'POST' });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            term.write(`✓ ${data.message}\r\n`);
+            activeMenuInstanceId = null;
+            await loadInstances();
+        } catch (error) {
+            term.write(`✗ Error: ${error.message}\r\n`);
+        }
+    }
+
+    async function deleteInstance(id) {
+        const confirmed = window.confirm('Are you sure you want to delete this instance?');
+        if (!confirmed) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/instances/${id}`, { method: 'DELETE' });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            term.write(`✓ ${data.message}\r\n`);
+            if (selectedInstance === id) {
+                selectedInstance = null;
+            }
+            activeMenuInstanceId = null;
+            await loadInstances();
+        } catch (error) {
+            term.write(`✗ Error: ${error.message}\r\n`);
+        }
     }
 
     async function loadInstanceStatus(id) {
@@ -249,6 +321,39 @@ function initApp() {
     document.getElementById('createToggleBtn').addEventListener('click', toggleCreateForm);
 
     document.getElementById('refreshBtn').addEventListener('click', loadInstances);
+
+    instancesList.addEventListener('click', (e) => {
+        const menuButton = e.target.closest('.instance-menu-btn');
+        if (menuButton) {
+            e.stopPropagation();
+            toggleInstanceMenu(menuButton.dataset.id);
+            return;
+        }
+
+        const menuAction = e.target.closest('.instance-menu-action');
+        if (menuAction) {
+            e.stopPropagation();
+            const { action, id } = menuAction.dataset;
+            if (action === 'toggle-autostart') {
+                toggleAutoStart(id);
+            } else if (action === 'delete') {
+                deleteInstance(id);
+            }
+            return;
+        }
+
+        const item = e.target.closest('.instance-item');
+        if (item) {
+            selectedInstance = item.dataset.id;
+            loadInstanceStatus(item.dataset.id);
+        }
+    });
+
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.instance-menu-wrapper')) {
+            closeInstanceMenu();
+        }
+    });
 
      document.getElementById('clearTerminal').addEventListener('click', () => {
         term.clear();

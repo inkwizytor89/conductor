@@ -5,10 +5,13 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.io.File;
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Comparator;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class ProfileRepository {
@@ -50,6 +53,12 @@ public class ProfileRepository {
         return profiles;
     }
 
+    public Optional<InstanceProfile> findById(String id) throws Exception {
+        return loadAll().stream()
+                .filter(profile -> profile.getId().equals(id))
+                .findFirst();
+    }
+
     public void save(InstanceProfile profile) throws Exception {
 
         Path dir = instancesDir.resolve(profile.getId());
@@ -63,5 +72,29 @@ public class ProfileRepository {
                         dir.resolve("config.json").toFile(),
                         profile
                 );
+    }
+
+    public void delete(String id) throws IOException {
+        Path dir = instancesDir.resolve(id);
+
+        if (!Files.exists(dir)) {
+            return;
+        }
+
+        try (var paths = Files.walk(dir)) {
+            paths.sorted(Comparator.reverseOrder())
+                    .forEach(path -> {
+                        try {
+                            Files.deleteIfExists(path);
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    });
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw e;
+        }
     }
 }

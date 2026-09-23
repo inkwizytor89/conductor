@@ -4,7 +4,7 @@ Conductor is an application for managing multiple instances from different accou
 
 ## Features
 
-- 🚀 **Instance Management** - create, start, and stop instances
+- 🚀 **Instance Management** - create, start, stop, delete, and toggle auto-start for instances
 - 🔐 **Multi-Account Support** - handle profiles from different sources
 - 📊 **Monitoring** - track instance status and logs
 - ⚙️ **Configuration** - flexible configuration of instance directories

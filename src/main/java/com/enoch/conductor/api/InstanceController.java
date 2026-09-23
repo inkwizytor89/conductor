@@ -6,6 +6,7 @@ import com.enoch.conductor.process.ProcessService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -113,5 +114,47 @@ public class InstanceController {
         
         profileRepository.save(profile);
         return ResponseEntity.ok(Map.of("message", "Instance created", "id", instanceId));
+    }
+
+    @PostMapping("/{id}/autostart/toggle")
+    public ResponseEntity<Map<String, Object>> toggleAutoStart(@PathVariable String id) throws Exception {
+        InstanceProfile profile = profileRepository.findById(id).orElse(null);
+
+        if (profile == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        profile.setAutoStart(!profile.isAutoStart());
+        profileRepository.save(profile);
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Auto-start updated",
+                "id", id,
+                "autoStart", profile.isAutoStart()
+        ));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Map<String, String>> deleteInstance(@PathVariable String id) throws Exception {
+        InstanceProfile profile = profileRepository.findById(id).orElse(null);
+
+        if (profile == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        if (processService.isRunning(id)) {
+            processService.stop(id);
+        }
+
+        try {
+            profileRepository.delete(id);
+        } catch (IOException e) {
+            throw e;
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "message", "Instance deleted",
+                "id", id
+        ));
     }
 }

@@ -120,6 +120,7 @@ main {
     display: flex;
     flex-direction: column;
     gap: 8px;
+    position: relative;
 }
 
 .instance-item:hover {
@@ -137,6 +138,76 @@ main {
     font-weight: bold;
     color: #00d4ff;
     font-size: 14px;
+}
+
+.instance-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.instance-menu-wrapper {
+    position: relative;
+    flex-shrink: 0;
+}
+
+.instance-menu-btn {
+    background: rgba(0, 212, 255, 0.15);
+    border: 1px solid rgba(0, 212, 255, 0.35);
+    color: #00d4ff;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+    padding: 2px 8px 6px;
+}
+
+.instance-menu-btn:hover {
+    background: rgba(0, 212, 255, 0.28);
+}
+
+.instance-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 170px;
+    padding: 6px;
+    background: #232338;
+    border: 1px solid #404060;
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+    z-index: 10;
+}
+
+.instance-menu.open {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.instance-menu-action {
+    background: transparent;
+    border: none;
+    color: #e0e0e0;
+    cursor: pointer;
+    font-size: 12px;
+    padding: 8px 10px;
+    text-align: left;
+    border-radius: 4px;
+}
+
+.instance-menu-action:hover {
+    background: rgba(0, 212, 255, 0.15);
+}
+
+.instance-menu-action.danger {
+    color: #ef4444;
+}
+
+.instance-menu-action.danger:hover {
+    background: rgba(239, 68, 68, 0.16);
 }
 
 .instance-status {

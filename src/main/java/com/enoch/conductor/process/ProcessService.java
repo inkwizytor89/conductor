@@ -11,6 +11,7 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class ProcessService {
@@ -90,6 +91,15 @@ public class ProcessService {
 
         System.err.println("Stopping instance with id " + id + " and pid " + runtime.getPid());
         runtime.getProcess().destroy();
+        try {
+            if (!runtime.getProcess().waitFor(5, TimeUnit.SECONDS)) {
+                runtime.getProcess().destroyForcibly();
+                runtime.getProcess().waitFor(5, TimeUnit.SECONDS);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException("Interrupted while stopping instance " + id, e);
+        }
         runtime.setOnline(false);
 
         runtimes.remove(id);
