@@ -65,6 +65,8 @@ public class ProcessService {
             command.add("-Ddatabase-name=" + profile.getDatabaseName().trim());
         }
 
+        command.add("-Dproperties=" + instanceDir.resolve("server.properties"));
+
         command.add("-jar");
         command.add(workerJarPath);
         command.add("--instanceId=" + profile.getId());
