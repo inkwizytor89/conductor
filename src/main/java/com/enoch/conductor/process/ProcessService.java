@@ -58,14 +58,20 @@ public class ProcessService {
         Files.createDirectories(instanceDir);
         String workerJarPath = new java.io.File("worker.jar").getAbsolutePath();
 
-        ProcessBuilder pb = new ProcessBuilder(
-                "java",
-                "-jar",
-                workerJarPath,
-                "--instanceId=" + profile.getId(),
-                "--instanceDir=" + instanceDir,
-                "--managerUrl=ws://localhost:8080/ws"
-        );
+        List<String> command = new java.util.ArrayList<>();
+        command.add("java");
+
+        if (profile.getDatabaseName() != null && !profile.getDatabaseName().isBlank()) {
+            command.add("-Ddatabase-name=" + profile.getDatabaseName().trim());
+        }
+
+        command.add("-jar");
+        command.add(workerJarPath);
+        command.add("--instanceId=" + profile.getId());
+        command.add("--instanceDir=" + instanceDir);
+        command.add("--managerUrl=ws://localhost:8080/ws");
+
+        ProcessBuilder pb = new ProcessBuilder(command);
 
         pb.inheritIO();
 

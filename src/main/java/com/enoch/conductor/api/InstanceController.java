@@ -143,6 +143,7 @@ public class InstanceController {
         InstanceProfile profile = new InstanceProfile();
         profile.setId(instanceId);
         profile.setAutoStart(request.autoStart());
+        profile.setDatabaseName(request.databaseName() == null ? null : request.databaseName().trim());
 
         try {
             profileRepository.save(profile);

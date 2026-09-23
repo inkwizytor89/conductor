@@ -343,6 +343,7 @@ function initApp() {
         }
 
         const idInput = document.getElementById('newInstanceId');
+        const databaseNameInput = document.getElementById('newInstanceDatabaseName');
         const autoStartCheckbox = document.getElementById('newInstanceAutoStart');
         const templateName = startTemplateSelect.value;
         
@@ -365,7 +366,8 @@ function initApp() {
                 body: JSON.stringify({
                     id: id,
                     autoStart: autoStartCheckbox.checked,
-                    templateName: templateName
+                    templateName: templateName,
+                    databaseName: databaseNameInput.value
                 })
             });
 
@@ -385,6 +387,7 @@ function initApp() {
                 openPlaceholderModal(id, data.placeholders, templateName);
             } else {
                 idInput.value = '';
+                databaseNameInput.value = '';
                 autoStartCheckbox.checked = false;
                 await loadInstances();
             }
@@ -432,6 +435,7 @@ function initApp() {
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
             document.getElementById('newInstanceId').value = '';
+            document.getElementById('newInstanceDatabaseName').value = '';
             document.getElementById('newInstanceAutoStart').checked = false;
             closePlaceholderModal();
             await loadInstances();
