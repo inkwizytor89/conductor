@@ -29,8 +29,14 @@
                             <input type="text" id="newInstanceServer" placeholder="Server" />
                             <label class="create-instance-field-label" for="newInstanceLogin">Login</label>
                             <input type="text" id="newInstanceLogin" placeholder="Login" />
-                            <label class="create-instance-field-label" for="newInstanceDatabaseName">Database Name</label>
-                            <input type="text" id="newInstanceDatabaseName" placeholder="Database Name" />
+                            <label class="create-instance-checkbox-label">
+                                <input type="checkbox" id="newInstanceUseDatabaseCheckbox" />
+                                Use independent database
+                            </label>
+                            <div id="newInstanceDatabaseNameWrapper" style="display: none;">
+                                <label class="create-instance-field-label" for="newInstanceDatabaseName">Database Name</label>
+                                <input type="text" id="newInstanceDatabaseName" placeholder="Database Name" />
+                            </div>
                             <label class="create-instance-field-label" for="startTemplateSelect">Start template</label>
                             <select id="startTemplateSelect"></select>
                             <button id="createBtn" class="btn-primary" type="submit">Create</button>

@@ -461,7 +461,7 @@ main {
 .create-instance-section .create-instance-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 4px;
     cursor: pointer;
     font-size: 12px;
 }

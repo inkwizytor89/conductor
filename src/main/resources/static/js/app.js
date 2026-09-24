@@ -496,6 +496,25 @@ function initApp() {
         createToggleBtn.title = 'Create new instance';
     }
 
+    function updateDatabaseNameField() {
+        const checkbox = document.getElementById('newInstanceUseDatabaseCheckbox');
+        const wrapper = document.getElementById('newInstanceDatabaseNameWrapper');
+        const input = document.getElementById('newInstanceDatabaseName');
+        const server = document.getElementById('newInstanceServer').value.trim();
+        const login = document.getElementById('newInstanceLogin').value.trim();
+
+        if (checkbox.checked) {
+            wrapper.style.display = 'block';
+            if (!input.value && server && login) {
+                input.value = `${server}#${login}`;
+            }
+            input.focus();
+        } else {
+            wrapper.style.display = 'none';
+            input.value = '';
+        }
+    }
+
     async function createInstance(event) {
         if (event) {
             event.preventDefault();
@@ -503,6 +522,7 @@ function initApp() {
 
         const serverInput = document.getElementById('newInstanceServer');
         const loginInput = document.getElementById('newInstanceLogin');
+        const databaseCheckbox = document.getElementById('newInstanceUseDatabaseCheckbox');
         const databaseNameInput = document.getElementById('newInstanceDatabaseName');
         const templateName = startTemplateSelect.value;
 
@@ -524,6 +544,8 @@ function initApp() {
             return;
         }
 
+        const databaseName = databaseCheckbox.checked ? databaseNameInput.value.trim() : null;
+
         try {
             const response = await fetch('/api/instances', {
                 method: 'POST',
@@ -532,7 +554,7 @@ function initApp() {
                     server: server,
                     login: login,
                     templateName: templateName,
-                    databaseName: databaseNameInput.value.trim()
+                    databaseName: databaseName
                 })
             });
 
@@ -556,12 +578,13 @@ function initApp() {
                     server: server,
                     login: login,
                     templateName: templateName,
-                    databaseName: databaseNameInput.value.trim()
+                    databaseName: databaseName
                 });
             } else {
                 serverInput.value = '';
                 loginInput.value = '';
-                databaseNameInput.value = '';
+                databaseCheckbox.checked = false;
+                updateDatabaseNameField();
                 await loadInstances();
             }
         } catch (error) {
@@ -612,6 +635,7 @@ function initApp() {
             term.write(`✓ ${data.message}\r\n`);
             document.getElementById('newInstanceServer').value = '';
             document.getElementById('newInstanceLogin').value = '';
+            document.getElementById('newInstanceUseDatabaseCheckbox').checked = false;
             document.getElementById('newInstanceDatabaseName').value = '';
             closePlaceholderModal();
             await loadInstances();
@@ -637,6 +661,18 @@ function initApp() {
 
     document.getElementById('createInstanceForm').addEventListener('submit', createInstance);
     document.getElementById('createToggleBtn').addEventListener('click', toggleCreateForm);
+    const dbCheckbox = document.getElementById('newInstanceUseDatabaseCheckbox');
+    if (dbCheckbox) {
+        dbCheckbox.addEventListener('change', updateDatabaseNameField);
+    }
+    const serverInput = document.getElementById('newInstanceServer');
+    if (serverInput) {
+        serverInput.addEventListener('input', updateDatabaseNameField);
+    }
+    const loginInput = document.getElementById('newInstanceLogin');
+    if (loginInput) {
+        loginInput.addEventListener('input', updateDatabaseNameField);
+    }
     document.getElementById('placeholderForm').addEventListener('submit', submitPlaceholderValues);
     document.getElementById('cancelPlaceholderBtn').addEventListener('click', closePlaceholderModal);
 
