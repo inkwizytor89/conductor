@@ -25,15 +25,14 @@
 
                         <form id="createInstanceForm" class="create-instance-section" hidden>
                             <h3>Create New Instance</h3>
-                            <input type="text" id="newInstanceId" placeholder="Instance ID" />
-                            <label for="newInstanceDatabaseName">Database Name</label>
+                            <label class="create-instance-field-label" for="newInstanceServer">Server</label>
+                            <input type="text" id="newInstanceServer" placeholder="Server" />
+                            <label class="create-instance-field-label" for="newInstanceLogin">Login</label>
+                            <input type="text" id="newInstanceLogin" placeholder="Login" />
+                            <label class="create-instance-field-label" for="newInstanceDatabaseName">Database Name</label>
                             <input type="text" id="newInstanceDatabaseName" placeholder="Database Name" />
-                            <label for="startTemplateSelect">Start template</label>
+                            <label class="create-instance-field-label" for="startTemplateSelect">Start template</label>
                             <select id="startTemplateSelect"></select>
-                            <label>
-                                <input type="checkbox" id="newInstanceAutoStart" />
-                                Auto-start
-                            </label>
                             <button id="createBtn" class="btn-primary" type="submit">Create</button>
                         </form>
 

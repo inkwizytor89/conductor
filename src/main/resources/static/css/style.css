@@ -413,7 +413,8 @@ main {
 }
 
 .create-instance-section input,
-.create-instance-section label {
+.create-instance-section .create-instance-field-label,
+.create-instance-section .create-instance-checkbox-label {
     display: block;
     margin-bottom: 8px;
     width: 100%;
@@ -451,7 +452,13 @@ main {
     background: rgba(0, 212, 255, 0.1);
 }
 
-.create-instance-section label {
+.create-instance-section .create-instance-field-label {
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: #d7d7dd;
+}
+
+.create-instance-section .create-instance-checkbox-label {
     display: flex;
     align-items: center;
     gap: 8px;

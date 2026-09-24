@@ -158,16 +158,19 @@ public class InstanceController {
 
     @PostMapping
     public ResponseEntity<CreateInstanceResponse> createInstance(@RequestBody CreateInstanceRequest request) throws Exception {
-        String instanceId = request.id();
+        String server = trimToNull(request.server());
+        String login = trimToNull(request.login());
         String templateName = request.templateName();
 
-        if (instanceId == null || instanceId.isEmpty()) {
+        if (server == null || login == null) {
             return ResponseEntity.badRequest().build();
         }
 
         if (templateName == null || templateName.isBlank()) {
             return ResponseEntity.badRequest().build();
         }
+
+        String instanceId = server + "#" + login;
 
         StartPropertyTemplate template;
         try {
@@ -184,60 +187,105 @@ public class InstanceController {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
-        InstanceProfile profile = new InstanceProfile();
-        profile.setId(instanceId);
-        profile.setAutoStart(request.autoStart());
-        profile.setDatabaseName(request.databaseName() == null ? null : request.databaseName().trim());
+        List<String> placeholders = template.placeholders();
+        if (placeholders.isEmpty()) {
+            materializeInstance(instanceId, templateName, trimToNull(request.databaseName()), Map.of());
+            return ResponseEntity.ok(new CreateInstanceResponse("Instance created", instanceId, placeholders));
+        }
+
+        return ResponseEntity.ok(new CreateInstanceResponse("Instance prepared", instanceId, placeholders));
+    }
+
+    private String trimToNull(String value) {
+        if (value == null) {
+            return null;
+        }
+
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    @PostMapping("/{id}/placeholders")
+    public ResponseEntity<Map<String, String>> applyPlaceholders(@PathVariable String id,
+                                                                 @RequestBody ApplyPlaceholdersRequest request) throws Exception {
+        String server = trimToNull(request.server());
+        String login = trimToNull(request.login());
+        String templateName = request.templateName();
+
+        if (server == null || login == null || templateName == null || templateName.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Missing instance metadata",
+                    "id", id
+            ));
+        }
+
+        String derivedId = server + "#" + login;
+        if (!derivedId.equals(id)) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Instance id mismatch",
+                    "id", id
+            ));
+        }
+
+        if (profileRepository.findById(id).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "message", "Instance already exists",
+                    "id", id
+            ));
+        }
+
+        if (request.placeholders() == null) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", "Missing placeholder values",
+                    "id", id
+            ));
+        }
 
         try {
-            List<String> placeholders = startPropertiesRepository.copyTemplateToInstance(
+            materializeInstance(
+                    id,
                     templateName,
-                    profileRepository.resolveInstanceDir(instanceId)
+                    trimToNull(request.databaseName()),
+                    request.placeholders()
             );
+            return ResponseEntity.ok(Map.of(
+                    "message", "Instance created",
+                    "id", id
+            ));
+        } catch (IOException | IllegalArgumentException e) {
+            try {
+                profileRepository.delete(id);
+            } catch (IOException cleanupError) {
+                e.addSuppressed(cleanupError);
+            }
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage(),
+                    "id", id
+            ));
+        }
+    }
+
+    private void materializeInstance(String id, String templateName, String databaseName, Map<String, String> placeholderValues) throws Exception {
+        InstanceProfile profile = new InstanceProfile();
+        profile.setId(id);
+        profile.setAutoStart(true);
+        profile.setDatabaseName(databaseName);
+
+        try {
+            Path instanceDir = profileRepository.resolveInstanceDir(id);
+            startPropertiesRepository.copyTemplateToInstance(templateName, instanceDir);
+            Path propertiesPath = instanceDir.resolve("server.properties");
+            startPropertiesRepository.applyPlaceholderValues(propertiesPath, placeholderValues);
             profile.setProperties("server.properties");
             profileRepository.save(profile);
-            return ResponseEntity.ok(new CreateInstanceResponse("Instance created", instanceId, placeholders));
         } catch (Exception e) {
             try {
-                profileRepository.delete(instanceId);
+                profileRepository.delete(id);
             } catch (IOException cleanupError) {
                 e.addSuppressed(cleanupError);
             }
             throw e;
         }
-    }
-
-    @PostMapping("/{id}/placeholders")
-    public ResponseEntity<Map<String, String>> applyPlaceholders(@PathVariable String id,
-                                                                 @RequestBody Map<String, String> values) throws Exception {
-        InstanceProfile profile = profileRepository.findById(id).orElse(null);
-
-        if (profile == null) {
-            return ResponseEntity.notFound().build();
-        }
-
-        try {
-            Path propertiesPath = profileRepository.resolvePropertiesPath(profile);
-            startPropertiesRepository.applyPlaceholderValues(
-                    propertiesPath,
-                    values
-            );
-        } catch (IOException e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", e.getMessage(),
-                    "id", id
-            ));
-        } catch (IllegalArgumentException e) {
-            return ResponseEntity.badRequest().body(Map.of(
-                    "message", e.getMessage(),
-                    "id", id
-            ));
-        }
-
-        return ResponseEntity.ok(Map.of(
-                "message", "Placeholders updated",
-                "id", id
-        ));
     }
 
     @PostMapping("/{id}/autostart/toggle")

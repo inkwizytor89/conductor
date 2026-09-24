@@ -324,10 +324,11 @@ function initApp() {
         `;
     }
 
-    function openPlaceholderModal(instanceId, placeholders, templateName) {
+    function openPlaceholderModal(instanceId, placeholders, templateName, defaultValues = {}, creationData = {}) {
         pendingInstanceCreation = {
             instanceId,
-            placeholders
+            placeholders,
+            creationData
         };
 
         placeholderModalSubtitle.textContent = `Template: ${templateName}`;
@@ -344,6 +345,9 @@ function initApp() {
             input.type = 'text';
             input.id = `placeholder-${placeholder}`;
             input.dataset.placeholderName = placeholder;
+            if (Object.prototype.hasOwnProperty.call(defaultValues, placeholder)) {
+                input.value = defaultValues[placeholder];
+            }
 
             label.appendChild(text);
             label.appendChild(input);
@@ -482,7 +486,7 @@ function initApp() {
             createToggleBtn.setAttribute('aria-expanded', 'true');
             createToggleBtn.classList.add('is-active');
             createToggleBtn.title = 'Hide create form';
-            document.getElementById('newInstanceId').focus();
+            document.getElementById('newInstanceServer').focus();
             return;
         }
 
@@ -497,15 +501,21 @@ function initApp() {
             event.preventDefault();
         }
 
-        const idInput = document.getElementById('newInstanceId');
+        const serverInput = document.getElementById('newInstanceServer');
+        const loginInput = document.getElementById('newInstanceLogin');
         const databaseNameInput = document.getElementById('newInstanceDatabaseName');
-        const autoStartCheckbox = document.getElementById('newInstanceAutoStart');
         const templateName = startTemplateSelect.value;
-        
-        const id = idInput.value.trim();
-        
-        if (!id) {
-            term.write('✗ Instance ID cannot be empty\r\n');
+
+        const server = serverInput.value.trim();
+        const login = loginInput.value.trim();
+
+        if (!server) {
+            term.write('✗ Server cannot be empty\r\n');
+            return;
+        }
+
+        if (!login) {
+            term.write('✗ Login cannot be empty\r\n');
             return;
         }
 
@@ -513,21 +523,21 @@ function initApp() {
             term.write('✗ Please select a start template\r\n');
             return;
         }
-        
+
         try {
             const response = await fetch('/api/instances', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    id: id,
-                    autoStart: autoStartCheckbox.checked,
+                    server: server,
+                    login: login,
                     templateName: templateName,
-                    databaseName: databaseNameInput.value
+                    databaseName: databaseNameInput.value.trim()
                 })
             });
 
             if (response.status === 409) {
-                term.write(`✗ Instance ${id} already exists\r\n`);
+                term.write(`✗ Instance ${server}#${login} already exists\r\n`);
                 return;
             }
 
@@ -539,11 +549,19 @@ function initApp() {
             term.write(`✓ ${data.message}\r\n`);
 
             if (data.placeholders && data.placeholders.length) {
-                openPlaceholderModal(id, data.placeholders, templateName);
+                openPlaceholderModal(data.id, data.placeholders, templateName, {
+                    login: login,
+                    server_name: server
+                }, {
+                    server: server,
+                    login: login,
+                    templateName: templateName,
+                    databaseName: databaseNameInput.value.trim()
+                });
             } else {
-                idInput.value = '';
+                serverInput.value = '';
+                loginInput.value = '';
                 databaseNameInput.value = '';
-                autoStartCheckbox.checked = false;
                 await loadInstances();
             }
         } catch (error) {
@@ -577,10 +595,13 @@ function initApp() {
         });
 
         try {
-            const response = await fetch(`/api/instances/${pendingInstanceCreation.instanceId}/placeholders`, {
+            const response = await fetch(`/api/instances/${encodeURIComponent(pendingInstanceCreation.instanceId)}/placeholders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(values)
+                body: JSON.stringify({
+                    ...pendingInstanceCreation.creationData,
+                    placeholders: values
+                })
             });
 
             if (!response.ok) {
@@ -589,9 +610,9 @@ function initApp() {
 
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
-            document.getElementById('newInstanceId').value = '';
+            document.getElementById('newInstanceServer').value = '';
+            document.getElementById('newInstanceLogin').value = '';
             document.getElementById('newInstanceDatabaseName').value = '';
-            document.getElementById('newInstanceAutoStart').checked = false;
             closePlaceholderModal();
             await loadInstances();
         } catch (error) {
