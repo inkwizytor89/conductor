@@ -40,6 +40,7 @@ public class InstanceController {
                     Map<String, Object> item = new HashMap<>();
                     item.put("id", profile.getId());
                     item.put("autoStart", profile.isAutoStart());
+                    item.put("databaseName", profile.getDatabaseName());
                     boolean running = processService.isRunning(profile.getId());
                     item.put("running", running);
                     var runtime = processService.getRuntime(profile.getId());
@@ -109,6 +110,7 @@ public class InstanceController {
         boolean running = processService.isRunning(id);
         status.put("running", running);
         status.put("autoStart", profile.isAutoStart());
+        status.put("databaseName", profile.getDatabaseName());
         var runtime = processService.getRuntime(id);
         status.put("pid", runtime != null ? runtime.getPid() : -1);
 

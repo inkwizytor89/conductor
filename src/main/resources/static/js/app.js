@@ -31,6 +31,10 @@ function initApp() {
     const createSection = document.getElementById('createInstanceForm');
     const createToggleBtn = document.getElementById('createToggleBtn');
     const instancesList = document.getElementById('instancesList');
+    const instanceDetails = document.getElementById('instanceDetails');
+    const workspace = document.querySelector('.workspace');
+    const terminalPanel = document.getElementById('terminalPanel');
+    const terminalControlsToggle = document.getElementById('toggleTerminalControls');
     const startTemplateSelect = document.getElementById('startTemplateSelect');
     const placeholderModal = document.getElementById('placeholderModal');
     const placeholderForm = document.getElementById('placeholderForm');
@@ -69,27 +73,19 @@ function initApp() {
         };
     }
 
-    // Load instances list
-    async function loadInstances() {
-        try {
-            console.log('Fetching instances from /api/instances...');
-            const response = await fetch('/api/instances');
-            console.log('Response status:', response.status, response.ok);
-            
-            if (!response.ok) {
-                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    function sortInstances(list) {
+        return [...list].sort((a, b) => {
+            const runningDiff = Number(!!b.running) - Number(!!a.running);
+            if (runningDiff !== 0) {
+                return runningDiff;
             }
-            
-            instances = await response.json();
-            console.log('Loaded instances:', instances);
-            renderInstances();
-            await refreshInstanceStatuses();
-        } catch (error) {
-            console.error('Failed to load instances:', error);
-            term.write('✗ Failed to load instances: ' + error.message + '\r\n');
-            const list = document.getElementById('instancesList');
-            list.innerHTML = '<div class="loading">Error loading instances</div>';
-        }
+
+            return String(a.id).localeCompare(String(b.id));
+        });
+    }
+
+    function getSelectedInstance() {
+        return instances.find((inst) => inst.id === selectedInstance) || null;
     }
 
     function getInstanceStatusText(inst) {
@@ -104,8 +100,52 @@ function initApp() {
         return 'Instance is stopped. Start it to receive status updates.';
     }
 
+    function getInstanceStateLabel(inst) {
+        return inst.running ? 'Running' : 'Stopped';
+    }
+
+    function toggleTerminalControls() {
+        const collapsed = terminalPanel.classList.toggle('is-collapsed');
+        workspace.classList.toggle('is-terminal-collapsed', collapsed);
+        terminalControlsToggle.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+        terminalControlsToggle.textContent = collapsed ? '⌃' : '⌄';
+        terminalControlsToggle.title = collapsed ? 'Show terminal' : 'Hide terminal';
+        terminalControlsToggle.setAttribute('aria-label', collapsed ? 'Show terminal' : 'Hide terminal');
+    }
+
+    // Load instances list
+    async function loadInstances() {
+        try {
+            console.log('Fetching instances from /api/instances...');
+            const response = await fetch('/api/instances');
+            console.log('Response status:', response.status, response.ok);
+            
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+            
+            instances = sortInstances(await response.json());
+            console.log('Loaded instances:', instances);
+
+            if (!selectedInstance || !instances.some((inst) => inst.id === selectedInstance)) {
+                const preferredInstance = instances.find((inst) => inst.running) || instances[0] || null;
+                selectedInstance = preferredInstance ? preferredInstance.id : null;
+            }
+
+            renderInstances();
+            renderInstanceDetails();
+            await refreshInstanceStatuses();
+        } catch (error) {
+            console.error('Failed to load instances:', error);
+            term.write('✗ Failed to load instances: ' + error.message + '\r\n');
+            const list = document.getElementById('instancesList');
+            list.innerHTML = '<div class="loading">Error loading instances</div>';
+        }
+    }
+
     async function refreshInstanceStatuses() {
         if (!instances.length) {
+            renderInstanceDetails();
             return;
         }
 
@@ -134,11 +174,12 @@ function initApp() {
         }));
 
         const updatesById = new Map(updates.map((update) => [update.id, update]));
-        instances = instances.map((inst) => ({
+        instances = sortInstances(instances.map((inst) => ({
             ...inst,
             ...(updatesById.get(inst.id) || {})
-        }));
+        })));
         renderInstances();
+        renderInstanceDetails();
     }
 
     async function loadStartTemplates() {
@@ -233,6 +274,47 @@ function initApp() {
                 </div>
             </div>
         `).join('');
+    }
+
+    function renderInstanceDetails() {
+        const inst = getSelectedInstance();
+
+        if (!inst) {
+            instanceDetails.innerHTML = '<div class="loading">Select an instance to see details</div>';
+            return;
+        }
+
+        const statusLabel = getInstanceStateLabel(inst);
+        const statusClass = inst.running ? 'status-running' : 'status-stopped';
+        const pidText = inst.pid && inst.pid !== -1 ? inst.pid : '-';
+        const statusText = getInstanceStatusText(inst);
+
+        instanceDetails.innerHTML = `
+            <div class="detail-card">
+                <div class="detail-header">
+                    <div class="detail-title">${inst.id}</div>
+                    <span class="status-badge ${statusClass}">${statusLabel}</span>
+                </div>
+                <div class="detail-grid">
+                    <div class="detail-item">
+                        <span class="detail-label">PID</span>
+                        <span class="detail-value">${pidText}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Auto-start</span>
+                        <span class="detail-value">${inst.autoStart ? 'Enabled' : 'Disabled'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Database</span>
+                        <span class="detail-value">${inst.databaseName ? inst.databaseName : '-'}</span>
+                    </div>
+                    <div class="detail-item detail-item-wide">
+                        <span class="detail-label">Latest status</span>
+                        <span class="detail-value">${statusText}</span>
+                    </div>
+                </div>
+            </div>
+        `;
     }
 
     function openPlaceholderModal(instanceId, placeholders, templateName) {
@@ -332,12 +414,21 @@ function initApp() {
     async function loadInstanceStatus(id) {
         try {
             const response = await fetch(`/api/instances/${id}/status`);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
             const status = await response.json();
-            term.write(`\r\n📊 Status for ${id}:\r\n`);
-            term.write(`   Running: ${status.running ? 'YES ✓' : 'NO ✗'}\r\n`);
-            term.write(`   AutoStart: ${status.autoStart ? 'YES' : 'NO'}\r\n`);
-            term.write(`   PID: ${status.pid !== -1 ? status.pid : 'N/A'}\r\n`);
-            term.write(`   Message: ${status.statusMessage || 'No status message yet'}\r\n`);
+
+            instances = sortInstances(instances.map((inst) => inst.id === id ? {
+                ...inst,
+                running: status.running,
+                pid: status.pid,
+                statusMessage: status.statusMessage,
+                autoStart: status.autoStart
+            } : inst));
+            renderInstances();
+            renderInstanceDetails();
         } catch (error) {
             term.write(`\r\n✗ Failed to load status: ${error.message}\r\n`);
         }
@@ -521,6 +612,7 @@ function initApp() {
     document.getElementById('cancelPlaceholderBtn').addEventListener('click', closePlaceholderModal);
 
     document.getElementById('refreshBtn').addEventListener('click', loadInstances);
+    terminalControlsToggle.addEventListener('click', toggleTerminalControls);
 
     instancesList.addEventListener('click', (e) => {
         const menuButton = e.target.closest('.instance-menu-btn');
@@ -545,6 +637,8 @@ function initApp() {
         const item = e.target.closest('.instance-item');
         if (item) {
             selectedInstance = item.dataset.id;
+            renderInstances();
+            renderInstanceDetails();
             loadInstanceStatus(item.dataset.id);
         }
     });

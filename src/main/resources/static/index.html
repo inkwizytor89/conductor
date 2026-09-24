@@ -10,55 +10,58 @@
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>🚀 Conductor</h1>
-            <p>Instance Manager Dashboard</p>
-        </header>
-
         <main>
-            <div class="layout">
-                <!-- Left Panel: Instances List -->
-                <div class="left-panel">
-                    <div class="panel-header">
-                        <h2>Instances</h2>
-                        <div class="panel-actions">
-                            <button type="button" class="btn-icon" id="createToggleBtn" title="Create new instance" aria-expanded="false">+</button>
-                            <button type="button" class="btn-icon" id="refreshBtn" title="Refresh list">↻</button>
+            <div class="workspace">
+                <div class="workspace-top">
+                    <!-- Left Panel: Instances List -->
+                    <div class="left-panel">
+                        <div class="panel-header">
+                            <h2>Instances</h2>
+                            <div class="panel-actions">
+                                <button type="button" class="btn-icon" id="createToggleBtn" title="Create new instance" aria-expanded="false">+</button>
+                                <button type="button" class="btn-icon" id="refreshBtn" title="Refresh list">↻</button>
+                            </div>
+                        </div>
+
+                        <form id="createInstanceForm" class="create-instance-section" hidden>
+                            <h3>Create New Instance</h3>
+                            <input type="text" id="newInstanceId" placeholder="Instance ID" />
+                            <label for="newInstanceDatabaseName">Database Name</label>
+                            <input type="text" id="newInstanceDatabaseName" placeholder="Database Name" />
+                            <label for="startTemplateSelect">Start template</label>
+                            <select id="startTemplateSelect"></select>
+                            <label>
+                                <input type="checkbox" id="newInstanceAutoStart" />
+                                Auto-start
+                            </label>
+                            <button id="createBtn" class="btn-primary" type="submit">Create</button>
+                        </form>
+
+                        <div id="instancesList" class="instances-list">
+                            <div class="loading">Loading instances...</div>
                         </div>
                     </div>
 
-                    <form id="createInstanceForm" class="create-instance-section" hidden>
-                        <h3>Create New Instance</h3>
-                        <input type="text" id="newInstanceId" placeholder="Instance ID" />
-                        <label for="newInstanceDatabaseName">Database Name</label>
-                        <input type="text" id="newInstanceDatabaseName" placeholder="Database Name" />
-                        <label for="startTemplateSelect">Start template</label>
-                        <select id="startTemplateSelect"></select>
-                        <label>
-                            <input type="checkbox" id="newInstanceAutoStart" />
-                            Auto-start
-                        </label>
-                        <button id="createBtn" class="btn-primary" type="submit">Create</button>
-                    </form>
-
-                    <div id="instancesList" class="instances-list">
-                        <div class="loading">Loading instances...</div>
+                    <div class="details-panel">
+                        <div class="panel-header">
+                            <h2>Instance details</h2>
+                        </div>
+                        <div id="instanceDetails" class="instance-details">
+                            <div class="loading">Select an instance to see details</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Right Panel: Terminal -->
-                <div class="right-panel">
-                    <div class="panel-header">
-                        <h2>Terminal</h2>
-                        <button type="button" class="btn-icon" id="clearTerminal" title="Clear terminal">×</button>
+                <div class="workspace-bottom">
+                    <div class="right-panel terminal-panel" id="terminalPanel">
+                        <button type="button" class="btn-icon terminal-toggle" id="toggleTerminalControls" title="Collapse terminal controls" aria-expanded="true">⌄</button>
+                        <div id="terminal" class="terminal"></div>
+                        <div class="command-input terminal-controls" id="terminalControls">
+                            <input type="text" id="commandInput" placeholder="Enter command..." />
+                            <button id="sendBtn" class="btn-primary">Send</button>
+                            <button type="button" class="btn-icon" id="clearTerminal" title="Clear terminal">×</button>
+                        </div>
                     </div>
-
-                    <div class="command-input">
-                        <input type="text" id="commandInput" placeholder="Enter command..." />
-                        <button id="sendBtn" class="btn-primary">Send</button>
-                    </div>
-
-                    <div id="terminal" class="terminal"></div>
                 </div>
             </div>
         </main>
