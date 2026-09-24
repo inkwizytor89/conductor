@@ -88,6 +88,10 @@ main.server=<server_name>
 
 When creating a new instance, pick a template from the UI. Conductor copies it to `server.properties` inside the instance directory and then asks for values for every placeholder before writing the final file.
 
+## Template Properties
+
+The application also creates a `templates/` directory on startup if it does not exist and fills it with the bundled files from `src/main/resources/template-properties/`.
+
 ## Architecture
 
 ### Main Components
@@ -118,6 +122,15 @@ instances/
 ```
 start-properties/
 └── start.properties
+
+templates/
+├── build.properties
+├── clean.properties
+├── clear.properties
+├── duty.properties
+├── expedition.properties
+├── global.properties
+└── sleep.properties
 ```
 
 ## Configuration
