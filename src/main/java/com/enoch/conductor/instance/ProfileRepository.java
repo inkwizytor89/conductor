@@ -1,5 +1,6 @@
 package com.enoch.conductor.instance;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -16,7 +17,8 @@ import java.util.Optional;
 @Service
 public class ProfileRepository {
 
-    private final ObjectMapper mapper = new ObjectMapper();
+    private final ObjectMapper mapper = new ObjectMapper()
+            .setSerializationInclusion(JsonInclude.Include.NON_NULL);
 
     private final Path instancesDir;
 
@@ -39,9 +41,12 @@ public class ProfileRepository {
                             File file = path.resolve("config.json").toFile();
 
                             if (file.exists()) {
-                                profiles.add(
-                                        mapper.readValue(file, InstanceProfile.class)
-                                );
+                                InstanceProfile profile = mapper.readValue(file, InstanceProfile.class);
+                                Path normalizedPath = path.toAbsolutePath().normalize();
+                                if (normalizeProperties(profile, normalizedPath)) {
+                                    save(profile);
+                                }
+                                profiles.add(profile);
                             }
                         } catch (Exception e) {
                             e.printStackTrace();
@@ -73,6 +78,27 @@ public class ProfileRepository {
                 );
     }
 
+    public Path resolvePropertiesPath(InstanceProfile profile) throws Exception {
+        Path instanceDir = resolveInstanceDir(profile.getId());
+        Path normalizedInstanceDir = instanceDir.toAbsolutePath().normalize();
+
+        if (normalizeProperties(profile, normalizedInstanceDir)) {
+            save(profile);
+        }
+
+        String properties = profile.getProperties();
+        if (properties == null || properties.isBlank()) {
+            throw new IOException("No properties file found for instance " + profile.getId());
+        }
+
+        Path resolved = normalizedInstanceDir.resolve(properties).normalize();
+        if (!resolved.startsWith(normalizedInstanceDir) || !Files.isRegularFile(resolved)) {
+            throw new IOException("Properties file not found for instance " + profile.getId() + ": " + properties);
+        }
+
+        return resolved;
+    }
+
     public void delete(String id) throws IOException {
         Path dir = instancesDir.resolve(id);
 
@@ -99,5 +125,62 @@ public class ProfileRepository {
 
     public Path resolveInstanceDir(String id) {
         return instancesDir.resolve(id);
+    }
+
+    private boolean normalizeProperties(InstanceProfile profile, Path instanceDir) throws IOException {
+        String configuredProperties = profile.getProperties();
+        if (configuredProperties != null) {
+            configuredProperties = configuredProperties.trim();
+            if (configuredProperties.isEmpty()) {
+                configuredProperties = null;
+            }
+        }
+
+        if (configuredProperties != null) {
+            Path configuredPath = instanceDir.resolve(configuredProperties).normalize();
+            if (configuredPath.startsWith(instanceDir) && Files.isRegularFile(configuredPath)) {
+                if (!configuredProperties.equals(profile.getProperties())) {
+                    profile.setProperties(configuredProperties);
+                    return true;
+                }
+                return false;
+            }
+        }
+
+        Optional<Path> newestProperties = findNewestPropertiesFile(instanceDir);
+        if (newestProperties.isPresent()) {
+            String relativePath = instanceDir.relativize(newestProperties.get()).toString();
+            if (!relativePath.equals(profile.getProperties())) {
+                profile.setProperties(relativePath);
+                return true;
+            }
+            return false;
+        }
+
+        if (profile.getProperties() != null) {
+            profile.setProperties(null);
+            return true;
+        }
+
+        return false;
+    }
+
+    private Optional<Path> findNewestPropertiesFile(Path instanceDir) throws IOException {
+        try (var paths = Files.walk(instanceDir)) {
+            return paths.filter(Files::isRegularFile)
+                    .filter(path -> path.getFileName().toString().endsWith(".properties"))
+                    .max(Comparator.comparingLong(path -> {
+                        try {
+                            return Files.getLastModifiedTime(path).toMillis();
+                        } catch (IOException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }));
+        } catch (RuntimeException e) {
+            if (e.getCause() instanceof IOException ioException) {
+                throw ioException;
+            }
+            throw e;
+        }
     }
 }

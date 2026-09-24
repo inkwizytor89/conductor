@@ -68,7 +68,8 @@ Instances can be configured to automatically start when the application starts. 
 ```json
 {
   "id": "my-instance",
-  "autoStart": true
+  "autoStart": true,
+  "properties": "server.properties"
 }
 ```
 
@@ -123,7 +124,7 @@ start-properties/
 
 The application is configured through command-line parameters. You can change the instance directory by passing the `--instances-dir` parameter when running the application.
 
-Instances are configured through their `config.json` files, where you can set properties like `autoStart`.
+Instances are configured through their `config.json` files, where you can set properties like `autoStart` and the relative `properties` path.
 
 ## License
 

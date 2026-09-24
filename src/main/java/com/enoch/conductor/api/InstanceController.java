@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public class InstanceController {
                     item.put("id", profile.getId());
                     item.put("autoStart", profile.isAutoStart());
                     item.put("databaseName", profile.getDatabaseName());
+                    item.put("properties", profile.getProperties());
                     boolean running = processService.isRunning(profile.getId());
                     item.put("running", running);
                     var runtime = processService.getRuntime(profile.getId());
@@ -69,7 +71,14 @@ public class InstanceController {
             return ResponseEntity.notFound().build();
         }
         
-        processService.start(profile);
+        try {
+            processService.start(profile);
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage(),
+                    "id", id
+            ));
+        }
         return ResponseEntity.ok(Map.of("message", "Instance started", "id", id));
     }
 
@@ -90,7 +99,14 @@ public class InstanceController {
             return ResponseEntity.notFound().build();
         }
         
-        processService.restart(profile);
+        try {
+            processService.restart(profile);
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage(),
+                    "id", id
+            ));
+        }
         return ResponseEntity.ok(Map.of("message", "Instance restarted", "id", id));
     }
 
@@ -111,6 +127,7 @@ public class InstanceController {
         status.put("running", running);
         status.put("autoStart", profile.isAutoStart());
         status.put("databaseName", profile.getDatabaseName());
+        status.put("properties", profile.getProperties());
         var runtime = processService.getRuntime(id);
         status.put("pid", runtime != null ? runtime.getPid() : -1);
 
@@ -173,11 +190,12 @@ public class InstanceController {
         profile.setDatabaseName(request.databaseName() == null ? null : request.databaseName().trim());
 
         try {
-            profileRepository.save(profile);
             List<String> placeholders = startPropertiesRepository.copyTemplateToInstance(
                     templateName,
                     profileRepository.resolveInstanceDir(instanceId)
             );
+            profile.setProperties("server.properties");
+            profileRepository.save(profile);
             return ResponseEntity.ok(new CreateInstanceResponse("Instance created", instanceId, placeholders));
         } catch (Exception e) {
             try {
@@ -199,10 +217,16 @@ public class InstanceController {
         }
 
         try {
+            Path propertiesPath = profileRepository.resolvePropertiesPath(profile);
             startPropertiesRepository.applyPlaceholderValues(
-                    profileRepository.resolveInstanceDir(id).resolve("server.properties"),
+                    propertiesPath,
                     values
             );
+        } catch (IOException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage(),
+                    "id", id
+            ));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of(
                     "message", e.getMessage(),

@@ -162,7 +162,8 @@ function initApp() {
                     id: inst.id,
                     running: status.running,
                     pid: status.pid,
-                    statusMessage: status.statusMessage
+                    statusMessage: status.statusMessage,
+                    properties: status.properties
                 };
             } catch (error) {
                 console.error(`Failed to refresh status for ${inst.id}:`, error);
@@ -288,6 +289,8 @@ function initApp() {
         const statusClass = inst.running ? 'status-running' : 'status-stopped';
         const pidText = inst.pid && inst.pid !== -1 ? inst.pid : '-';
         const statusText = getInstanceStatusText(inst);
+        const propertiesText = inst.properties ? inst.properties : 'Properties file not found';
+        const propertiesClass = inst.properties ? '' : 'detail-value-error';
 
         instanceDetails.innerHTML = `
             <div class="detail-card">
@@ -307,6 +310,10 @@ function initApp() {
                     <div class="detail-item">
                         <span class="detail-label">Database</span>
                         <span class="detail-value">${inst.databaseName ? inst.databaseName : '-'}</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="detail-label">Properties</span>
+                        <span class="detail-value ${propertiesClass}">${propertiesText}</span>
                     </div>
                     <div class="detail-item detail-item-wide">
                         <span class="detail-label">Latest status</span>
@@ -425,7 +432,8 @@ function initApp() {
                 running: status.running,
                 pid: status.pid,
                 statusMessage: status.statusMessage,
-                autoStart: status.autoStart
+                autoStart: status.autoStart,
+                properties: status.properties
             } : inst));
             renderInstances();
             renderInstanceDetails();

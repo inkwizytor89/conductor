@@ -351,6 +351,10 @@ main {
     word-break: break-word;
 }
 
+.detail-value-error {
+    color: #ef4444;
+}
+
 .btn-action {
     flex: 1;
     padding: 6px;
