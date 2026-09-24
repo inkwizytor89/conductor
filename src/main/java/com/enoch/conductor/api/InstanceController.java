@@ -40,9 +40,11 @@ public class InstanceController {
                     Map<String, Object> item = new HashMap<>();
                     item.put("id", profile.getId());
                     item.put("autoStart", profile.isAutoStart());
-                    item.put("running", processService.isRunning(profile.getId()));
+                    boolean running = processService.isRunning(profile.getId());
+                    item.put("running", running);
                     var runtime = processService.getRuntime(profile.getId());
                     item.put("pid", runtime != null ? runtime.getPid() : null);
+                    item.put("statusMessage", processService.getLastStatusMessage(profile.getId()));
                     return item;
                 })
                 .toList();
@@ -104,11 +106,34 @@ public class InstanceController {
         
         Map<String, Object> status = new HashMap<>();
         status.put("id", profile.getId());
-        status.put("running", processService.isRunning(id));
+        boolean running = processService.isRunning(id);
+        status.put("running", running);
         status.put("autoStart", profile.isAutoStart());
         var runtime = processService.getRuntime(id);
         status.put("pid", runtime != null ? runtime.getPid() : -1);
-        
+
+        if (running) {
+            long previousUpdateAt = processService.getLastStatusUpdatedAt(id);
+            try {
+                processService.requestStatus(id);
+            } catch (Exception e) {
+                System.err.println("Failed to request status for instance " + id + ": " + e.getMessage());
+            }
+
+            long deadline = System.currentTimeMillis() + 300;
+            while (System.currentTimeMillis() < deadline
+                    && processService.getLastStatusUpdatedAt(id) <= previousUpdateAt) {
+                try {
+                    Thread.sleep(25);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+            }
+        }
+
+        status.put("statusMessage", processService.getLastStatusMessage(id));
+
         return ResponseEntity.ok(status);
     }
 

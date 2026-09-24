@@ -83,12 +83,62 @@ function initApp() {
             instances = await response.json();
             console.log('Loaded instances:', instances);
             renderInstances();
+            await refreshInstanceStatuses();
         } catch (error) {
             console.error('Failed to load instances:', error);
             term.write('✗ Failed to load instances: ' + error.message + '\r\n');
             const list = document.getElementById('instancesList');
             list.innerHTML = '<div class="loading">Error loading instances</div>';
         }
+    }
+
+    function getInstanceStatusText(inst) {
+        if (inst.statusMessage && String(inst.statusMessage).trim()) {
+            return inst.statusMessage;
+        }
+
+        if (inst.running) {
+            return 'Awaiting the first status update...';
+        }
+
+        return 'Instance is stopped. Start it to receive status updates.';
+    }
+
+    async function refreshInstanceStatuses() {
+        if (!instances.length) {
+            return;
+        }
+
+        const updates = await Promise.all(instances.map(async (inst) => {
+            try {
+                const response = await fetch(`/api/instances/${inst.id}/status`);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const status = await response.json();
+                return {
+                    id: inst.id,
+                    running: status.running,
+                    pid: status.pid,
+                    statusMessage: status.statusMessage
+                };
+            } catch (error) {
+                console.error(`Failed to refresh status for ${inst.id}:`, error);
+                return {
+                    id: inst.id,
+                    statusMessage: 'Status unavailable right now.'
+                };
+            }
+        }));
+
+        const updatesById = new Map(updates.map((update) => [update.id, update]));
+        instances = instances.map((inst) => ({
+            ...inst,
+            ...(updatesById.get(inst.id) || {})
+        }));
+        renderInstances();
     }
 
     async function loadStartTemplates() {
@@ -141,7 +191,15 @@ function initApp() {
         list.innerHTML = instances.map(inst => `
             <div class="instance-item ${selectedInstance === inst.id ? 'selected' : ''}" data-id="${inst.id}">
                 <div class="instance-top">
-                    <div class="instance-name">${inst.id}</div>
+                    <div class="instance-header">
+                        <div class="instance-title-row">
+                            <div class="instance-name">${inst.id}</div>
+                            <span class="status-badge ${inst.running ? 'status-running' : 'status-stopped'}">
+                                ${inst.running ? 'Running' : 'Stopped'}
+                            </span>
+                            <span class="instance-pid">PID: ${inst.pid && inst.pid !== -1 ? inst.pid : '-'}</span>
+                        </div>
+                    </div>
                     <div class="instance-menu-wrapper">
                         <button
                             type="button"
@@ -162,12 +220,9 @@ function initApp() {
                         </div>
                     </div>
                 </div>
-                <div class="instance-status">
-                    <span class="status-badge ${inst.running ? 'status-running' : 'status-stopped'}">
-                        ${inst.running ? '● RUNNING' : '○ STOPPED'}
-                    </span>
-                    <span>AutoStart: ${inst.autoStart ? 'yes' : 'no'}</span>
-                    ${inst.pid && inst.pid !== -1 ? '<span>PID: ' + inst.pid + '</span>' : '<span>PID: -</span>'}
+                <div class="instance-status-line">
+                    <span class="status-line-label">Status:</span>
+                    <span class="instance-status-message">${getInstanceStatusText(inst)}</span>
                 </div>
                 <div class="instance-actions">
                     ${inst.running 
@@ -282,6 +337,7 @@ function initApp() {
             term.write(`   Running: ${status.running ? 'YES ✓' : 'NO ✗'}\r\n`);
             term.write(`   AutoStart: ${status.autoStart ? 'YES' : 'NO'}\r\n`);
             term.write(`   PID: ${status.pid !== -1 ? status.pid : 'N/A'}\r\n`);
+            term.write(`   Message: ${status.statusMessage || 'No status message yet'}\r\n`);
         } catch (error) {
             term.write(`\r\n✗ Failed to load status: ${error.message}\r\n`);
         }
@@ -509,7 +565,7 @@ function initApp() {
     loadInstances();
 
     // Refresh instances list periodically
-    setInterval(loadInstances, 5000);
+    setInterval(loadInstances, 30000);
 }
 
 document.addEventListener('DOMContentLoaded', initApp);

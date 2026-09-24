@@ -3,6 +3,7 @@ package com.enoch.conductor.process;
 import com.enoch.conductor.instance.InstanceProfile;
 import com.enoch.conductor.instance.InstanceRuntime;
 import com.enoch.conductor.instance.ProfileRepository;
+import com.enoch.conductor.ws.WorkerSocketHandler;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -20,11 +21,14 @@ public class ProcessService {
     private final Map<String, InstanceRuntime> runtimes = new ConcurrentHashMap<>();
     private final String instancesDirPath;
     private final ProfileRepository profileRepository;
+    private final WorkerSocketHandler workerSocketHandler;
 
     public ProcessService(@Value("${conductor.instances-dir:instances}") String instancesDirPath,
-                          ProfileRepository profileRepository) {
+                          ProfileRepository profileRepository,
+                          WorkerSocketHandler workerSocketHandler) {
         this.instancesDirPath = instancesDirPath;
         this.profileRepository = profileRepository;
+        this.workerSocketHandler = workerSocketHandler;
     }
 
     @PostConstruct
@@ -137,6 +141,18 @@ public class ProcessService {
      */
     public InstanceRuntime getRuntime(String id) {
         return runtimes.get(id);
+    }
+
+    public boolean requestStatus(String id) throws Exception {
+        return workerSocketHandler.requestStatus(id);
+    }
+
+    public String getLastStatusMessage(String id) {
+        return workerSocketHandler.getLastStatusMessage(id);
+    }
+
+    public long getLastStatusUpdatedAt(String id) {
+        return workerSocketHandler.getLastStatusUpdatedAt(id);
     }
 
     /**
