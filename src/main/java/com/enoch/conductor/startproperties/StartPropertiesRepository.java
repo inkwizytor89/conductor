@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.annotation.PostConstruct;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,11 +23,7 @@ import java.util.regex.Pattern;
 public class StartPropertiesRepository {
 
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("<([A-Za-z0-9._-]+)>");
-    private static final String DEFAULT_TEMPLATE_CONTENT = String.join(System.lineSeparator(),
-            "main.time=on",
-            "main.login=<login>",
-            "main.password=<password>",
-            "main.server=<server_name>");
+    private static final String DEFAULT_TEMPLATE_RESOURCE = "start-properties/start.properties";
 
     private final Path startPropertiesDir;
 
@@ -39,7 +37,16 @@ public class StartPropertiesRepository {
 
         Path defaultTemplate = startPropertiesDir.resolve("start.properties");
         if (Files.notExists(defaultTemplate)) {
-            Files.writeString(defaultTemplate, DEFAULT_TEMPLATE_CONTENT, StandardCharsets.UTF_8);
+            Files.writeString(defaultTemplate, readDefaultTemplateContent(), StandardCharsets.UTF_8);
+        }
+    }
+
+    private String readDefaultTemplateContent() throws IOException {
+        try (InputStream inputStream = getClass().getClassLoader().getResourceAsStream(DEFAULT_TEMPLATE_RESOURCE)) {
+            if (inputStream == null) {
+                throw new IOException("Missing default template resource: " + DEFAULT_TEMPLATE_RESOURCE);
+            }
+            return new String(inputStream.readAllBytes(), StandardCharsets.UTF_8);
         }
     }
 
