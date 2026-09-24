@@ -151,7 +151,7 @@ function initApp() {
 
         const updates = await Promise.all(instances.map(async (inst) => {
             try {
-                const response = await fetch(`/api/instances/${inst.id}/status`);
+                const response = await fetch(`/api/instances/${encodeURIComponent(inst.id)}/status`);
 
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -382,7 +382,7 @@ function initApp() {
 
     async function toggleAutoStart(id) {
         try {
-            const response = await fetch(`/api/instances/${id}/autostart/toggle`, { method: 'POST' });
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}/autostart/toggle`, { method: 'POST' });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -404,7 +404,7 @@ function initApp() {
         }
 
         try {
-            const response = await fetch(`/api/instances/${id}`, { method: 'DELETE' });
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}`, { method: 'DELETE' });
 
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -424,7 +424,7 @@ function initApp() {
 
     async function loadInstanceStatus(id) {
         try {
-            const response = await fetch(`/api/instances/${id}/status`);
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}/status`);
             if (!response.ok) {
                 throw new Error(`HTTP ${response.status}: ${response.statusText}`);
             }
@@ -448,7 +448,7 @@ function initApp() {
 
     window.startInstance = async function(id) {
         try {
-            const response = await fetch(`/api/instances/${id}/start`, { method: 'POST' });
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}/start`, { method: 'POST' });
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
             await loadInstances();
@@ -459,7 +459,7 @@ function initApp() {
 
     window.stopInstance = async function(id) {
         try {
-            const response = await fetch(`/api/instances/${id}/stop`, { method: 'POST' });
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}/stop`, { method: 'POST' });
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
             await loadInstances();
@@ -470,7 +470,7 @@ function initApp() {
 
     window.restartInstance = async function(id) {
         try {
-            const response = await fetch(`/api/instances/${id}/restart`, { method: 'POST' });
+            const response = await fetch(`/api/instances/${encodeURIComponent(id)}/restart`, { method: 'POST' });
             const data = await response.json();
             term.write(`✓ ${data.message}\r\n`);
             await loadInstances();
